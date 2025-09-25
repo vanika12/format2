@@ -20,7 +20,7 @@ import {
   ImageRun,
 } from "docx";
 // import { Document, Packer, Paragraph, TextRun, AlignmentType, convertInchesToTwip } from "docx"
-import { applyLatexFormatting, formatCitations, formatTablesAndFigures } from "./formatter.js"
+import { applyLatexFormatting, formatCitations } from "./formatter.js"
 import { generateCompleteLatexDocument } from "./latex-converter.js"
 import path from "path";
 
@@ -57,6 +57,12 @@ export const exportToHTML = async (formattedDocument) => {
     footer = {},
     publicationInfo = null,
   } = formattedDocument || {}
+
+  const headerPartsTmp = []
+  if (header?.issn) headerPartsTmp.push(header.issn)
+  if (header?.doi) headerPartsTmp.push(header.doi)
+  if (header?.volume) headerPartsTmp.push(header.volume)
+  const headerSecondLineHTML = esc(headerPartsTmp.join(" | "))
 
   const html = `
 <!DOCTYPE html>
@@ -115,39 +121,6 @@ export const exportToHTML = async (formattedDocument) => {
             ${authors.style}
             margin: 10pt 0;
         }
-            /* Table formatting */
-.journal-table {
-  width: 100%;
-  border-collapse: collapse;
-  table-layout: fixed;
-  margin: 12pt 0;
-  font-size: 12pt;
-  font-family: 'Times New Roman', serif;
-}
-
-.journal-table th,
-.journal-table td {
-  border: 1px solid #000;
-  padding: 6pt;
-  text-align: left;
-  vertical-align: middle;
-  word-break: break-word;
-}
-
-.journal-table thead { display: table-header-group; }
-.journal-table tfoot { display: table-footer-group; }
-.journal-table tr { page-break-inside: avoid; break-inside: avoid; }
-
-/* Captions */
-.table-caption, .figure-caption {
-  font-weight: bold;
-  text-align: center;
-  margin: 8pt 0 4pt 0;
-}
-
-/* Key-Value tables */
-.kv-key { width: 40%; font-weight: bold; }
-.kv-val { width: 60%; }
 
         
         .affiliations {
@@ -230,12 +203,18 @@ export const exportToHTML = async (formattedDocument) => {
             margin-bottom: 10pt;
         }
         
-        .reference-item {
-            margin-bottom: 6pt;
-            margin-left: 30pt; /* push references slightly to the right */
-            text-align: justify; /* optional for neat alignment */
-            // text-indent: -0.5in; /* Pull back the first line for the number */
+        /* References aligned number + text (like screenshot) */
+        .references-list { margin-top: 2pt;
+        padding-left: 20pt; /* shift everything to the right */ }
+        .reference-row {
+            display: grid;
+            grid-template-columns: 24pt 1fr; /* number column + text */
+            column-gap: 4pt;
+            margin-bottom: 4pt;
+            align-items: start;
         }
+        .reference-row .ref-num { text-align: left; }
+        .reference-row .ref-text { text-align: justify; }
         
         /* Citation and formatting styles */
         sup {
@@ -258,22 +237,40 @@ export const exportToHTML = async (formattedDocument) => {
             text-align: center;
             margin: 12pt 0 6pt 0;
         }
+
+        /* Body header visible in HTML, hidden in print/PDF */
+        .body-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #000;
+            padding: 0 0.42in 10pt;
+            margin-bottom: 20pt;
+            font-family: 'Times New Roman', serif;
+        }
+        .body-header .logo { flex: 0 0 auto; }
+        .body-header .logo img { height: 35px; }
+        .body-header .header-text { flex: 1; text-align: right; font-weight: bold; font-size: 10pt; }
+        .body-header .header-text span { font-size: 9pt; font-weight: normal; }
         
         /* Print styles */
         @media print {
-            .document-container {
-                max-width: none;
-            }
-            
-            .section-heading {
-                page-break-after: avoid;
-            }
+            .document-container { max-width: none; }
+            .section-heading { page-break-after: avoid; }
+            .body-header { display: none; }
         }
     </style>
 </head>
 <body>
     <div class="document-container">
-        <!-- Removed duplicate header from body since it's handled by PDF header template -->
+        <!-- HTML-visible header (hidden in print/PDF) -->
+        <div class="body-header">
+          <div class="logo"><img src="${imageSrc}" alt="Logo"/></div>
+          <div class="header-text">
+            ${esc(header?.content || "")}<br>
+            <span>${headerSecondLineHTML}</span>
+          </div>
+        </div>
         
         <div class="title">${title.text}</div>
         
@@ -344,7 +341,7 @@ export const exportToHTML = async (formattedDocument) => {
 ${esc(section.heading)}
                 </div>
 <div class=\"section-content\" style=\"${(section && section.formatting && section.formatting.contentStyle) || DEFAULT_CONTENT_STYLE}\">
-                    ${applyLatexFormatting(formatCitations(formatTablesAndFigures(section.content)))
+${applyLatexFormatting(formatCitations(section.content))
                       .split(/\n\s*\n/)
                       .map((p) => p.trim())
                       .filter((p) => p)
@@ -367,7 +364,7 @@ return isKeywordHeadingOnly(plain)
 ${esc(subsection.heading)}
                             </div>
 <div class=\"section-content\" style=\"${(subsection && subsection.formatting && subsection.formatting.contentStyle) || DEFAULT_CONTENT_STYLE}\">
-                                ${applyLatexFormatting(formatCitations(formatTablesAndFigures(subsection.content)))
+${applyLatexFormatting(formatCitations(subsection.content))
                                   .split(/\n\s*\n/)
                                   .map((p) => p.trim())
                                   .filter((p) => p)
@@ -395,9 +392,16 @@ return isKeywordHeadingOnly(plain)
             ? `
         <div class="references">
             <div class="references-heading">${references.heading}</div>
-            ${references.content
-              .map((ref) => `<div class="reference-item">${ref.number}.&nbsp;&nbsp;${ref.text}</div>`)
-              .join("")}
+            <div class="references-list">
+              ${references.content
+                .map((ref) => `
+                  <div class="reference-row">
+                    <div class="ref-num">${ref.number}.</div>
+                    <div class="ref-text">${ref.text}</div>
+                  </div>
+                `)
+                .join("")}
+            </div>
         </div>
         `
             : ""
@@ -512,10 +516,9 @@ export const exportToPDF = async (formattedDocument) => {
            <!-- Logo at top-left -->
       <div style="flex: 0 0 auto; text-align: left;">
         <img src="${imageSrc}" alt="Logo" style="height:35px;"/>
-
       </div>
              <!-- Journal header content centered -->
-      <div style="flex: 1; text-align: center;">
+      <div style=\"flex: 1; text-align: right;\">
         ${headerData.content || ""}<br>
         <span style="font-size: 9pt; font-weight: normal;">
           ${headerSecondLine}
@@ -894,56 +897,41 @@ cleanParagraphs.forEach((p) => {
     references.content.forEach((ref) => {
       docChildren.push(
         new Paragraph({
-          children: [
-            new TextRun({ text: `${ref.number}. ${ref.text}`, size: 24 }),
-          ],
+          children: [new TextRun({ text: `${ref.number}. ${ref.text}`, size: 24 })],
           alignment: AlignmentType.JUSTIFIED,
-          indent: { left: convertInchesToTwip(0.5) },
+          indent: {
+            left: convertInchesToTwip(0.25),
+            hanging: convertInchesToTwip(0.25),
+          },
           spacing: { after: 120 },
         }),
       );
     });
   }
 
-  let logoImage;
-if (header?.logoPath && fs.existsSync(header.logoPath)) {
-  const logoBuffer = fs.readFileSync(header.logoPath);
-  logoImage = new ImageRun({ data: logoBuffer, transformation: { width: 50, height: 50 } });
-}
+  // Build a minimal header without logo: right-aligned lines only
+  const headerChildren = [];
 
-const headerChildren = [];
-
-if (logoImage) {
   headerChildren.push(
     new Paragraph({
-      children: [logoImage],
-      alignment: AlignmentType.LEFT,
-      spacing: { after: 100 },
+      children: [new TextRun({ text: header?.content || "", bold: true, size: 22 })],
+      alignment: AlignmentType.RIGHT,
+      spacing: { after: 50 },
     }),
   );
-}
 
-headerChildren.push(
-  new Paragraph({
-    children: [new TextRun({ text: header?.content || "", bold: true, size: 22 })],
-    alignment: AlignmentType.CENTER,
-    spacing: { after: 50 },
-  }),
-);
-
-const headerParts = [];
-if (header?.issn) headerParts.push(header.issn);
-if (header?.doi) headerParts.push(header.doi);
-if (header?.volume) headerParts.push(header.volume);
-
-if (headerParts.length > 0) {
-  headerChildren.push(
-    new Paragraph({
-      children: [new TextRun({ text: headerParts.join(" | "), size: 20 })],
-      alignment: AlignmentType.CENTER,
-    }),
-  );
-}
+  const hp = [];
+  if (header?.issn) hp.push(header.issn);
+  if (header?.doi) hp.push(header.doi);
+  if (header?.volume) hp.push(header.volume);
+  if (hp.length > 0) {
+    headerChildren.push(
+      new Paragraph({
+        children: [new TextRun({ text: hp.join(" | "), size: 20 })],
+        alignment: AlignmentType.RIGHT,
+      }),
+    );
+  }
 
 const docxHeader = new Header({
   children: [
@@ -1001,6 +989,7 @@ const docxFooter = new Footer({
         children: docChildren,
       },
     ],
+    compatibility: { useOldTables: true },
   });
 
   const buffer = await Packer.toBuffer(doc);
