@@ -475,7 +475,7 @@ export const exportToPDF = async (formattedDocument) => {
     await page.addStyleTag({
   content: `
     @page {
-      margin-bottom: 80px !important; /* Ensure enough space for footer */
+      margin-bottom: 50px !important; /* Ensure enough space for footer */
     }
   `
 });
@@ -539,20 +539,18 @@ export const exportToPDF = async (formattedDocument) => {
     font-size: 10pt; 
     width: 100%; 
     font-family: 'Times New Roman', serif; 
-    padding: 0 0.42in;
-    background-color: rgba(255,0,0,0.1); /* Light red background for debugging */
-    height: 50px; /* Fixed height to ensure visibility */
+    padding: 0 0.42in; /* Match left/right page margins */
+    box-sizing: border-box;
   ">
     <!-- Very visible black line -->
     <div style="
       border-top: 1px solid #000000;
       margin: 0 auto; /* Center the line */
       width: 100%; /* Control the width of the line */
-      max-width: 8in; /* Maximum width for the line */
       height: 1px;
     "></div>
     
-    <div style="padding-top: 10pt; display: flex; justify-content: space-between; align-items: center;">
+    <div style="padding-top:2pt; display: flex; justify-content: space-between; align-items: center;">
        <div style="flex:1; text-align:left;">Page <span class="pageNumber"></span></div>
       <div style="flex: 1; text-align: center;">www.rsisinternational.org</div>
       <div style="flex: 1;"></div>
