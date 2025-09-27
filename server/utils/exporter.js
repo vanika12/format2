@@ -44,6 +44,7 @@ const DEFAULT_CONTENT_STYLE = "font-size: 12pt; font-family: 'Times New Roman', 
 const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
 
 export const exportToHTML = async (formattedDocument) => {
+   const doc = formattedDocument || {}
   const {
     metadata = { formatSpecs: { margins: { top: "0.76in", bottom: "0.42in", left: "0.42in", right: "0.42in" } } },
     header = {},
@@ -56,13 +57,16 @@ export const exportToHTML = async (formattedDocument) => {
     references = { heading: "REFERENCES", content: [], style: { heading: "", content: "" } },
     footer = {},
     publicationInfo = null,
+    imageSrc = ""
   } = formattedDocument || {}
 
   const headerPartsTmp = []
   if (header?.issn) headerPartsTmp.push(header.issn)
   if (header?.doi) headerPartsTmp.push(header.doi)
   if (header?.volume) headerPartsTmp.push(header.volume)
-  const headerSecondLineHTML = esc(headerPartsTmp.join(" | "))
+  // const headerSecondLineHTML = esc(headerPartsTmp.join(" | "))
+    const headerSecondLineHTML = (typeof esc === "function") ? esc(headerPartsTmp.join(" | ")) : headerPartsTmp.join(" | ")
+
 
   const html = `
 <!DOCTYPE html>
@@ -113,12 +117,12 @@ export const exportToHTML = async (formattedDocument) => {
         }
         
         .title {
-            ${title.style}
+            ${title?.style|| ""}
             margin: 20pt 0;
         }
         
         .authors {
-            ${authors.style}
+            ${authors?.style || ""}
             margin: 10pt 0;
         }
 
@@ -142,12 +146,12 @@ export const exportToHTML = async (formattedDocument) => {
         }
         
         .abstract-heading {
-            ${abstract.style.heading}
+            ${abstract?.style?.heading || ""}
             margin-bottom: 10pt;
         }
         
         .abstract-content {
-            ${abstract.style.content}
+            ${abstract?.style?.content|| ""}
             margin-bottom: 15pt;
         }
 
@@ -164,11 +168,11 @@ export const exportToHTML = async (formattedDocument) => {
         }
         
         .keywords-heading {
-            ${keywords.style.heading}
+            ${keywords?.style?.heading|| ""}
         }
         
         .keywords-content {
-            ${keywords.style.content}
+            ${keywords?.style?.content|| ""}
         }
         
         .section {
@@ -199,7 +203,7 @@ export const exportToHTML = async (formattedDocument) => {
         }
         
         .references-heading {
-            ${references.style.heading}
+            ${references?.style?.heading|| ""}
             margin-bottom: 10pt;
         }
         
@@ -272,9 +276,9 @@ export const exportToHTML = async (formattedDocument) => {
           </div>
         </div>
         
-        <div class="title">${title.text}</div>
+        <div class="title">${title.text|| ""}</div>
         
-        <div class="authors">${authors.text}</div>
+        <div class="authors">${authors.text|| ""}</div>
         
         ${
           affiliations && affiliations.length > 0
@@ -284,7 +288,7 @@ export const exportToHTML = async (formattedDocument) => {
               .map(
                 (aff) => `
                 <div class=\"affiliation\">
-                    <sup>${aff.number}</sup> ${aff.text}
+                    <sup>${aff.number|| ""}</sup> ${aff.text|| ""}
                 </div>
             `,
               )
@@ -298,36 +302,40 @@ export const exportToHTML = async (formattedDocument) => {
           publicationInfo
             ? `
         <div class="publication-info">
-            <strong>DOI:</strong> <a href="${publicationInfo.doi}" style="color: blue; text-decoration: underline;">${publicationInfo.doi}</a><br>
-            <strong>Received:</strong> ${publicationInfo.received}; <strong>Accepted:</strong> ${publicationInfo.accepted}; <strong>Published:</strong> ${publicationInfo.published}
+            <strong>DOI:</strong> <a href="${publicationInfo.doi|| ""}" style="color: blue; text-decoration: underline;">${publicationInfo.doi|| ""}</a><br>
+            <strong>Received:</strong> ${publicationInfo.received|| ""}; <strong>Accepted:</strong> ${publicationInfo.accepted|| ""}; <strong>Published:</strong> ${publicationInfo.published|| ""}
         </div>
         `
             : ""
         }
         
         ${
-          abstract.content
-            ? `
-        <div class="abstract">
-            <div class="abstract-heading">${abstract.heading}</div>
-            <div class="abstract-content">${applyLatexFormatting(formatCitations(abstract.content))
-              .split(/\n\s*\n/)
-              .map((p) => p.trim())
-              .filter((p) => p)
-              // .map((p) => `<p>${p.replace(/\n/g, "<br>")}</p>`)
-              .map((p) => `<p>${p}</p>`)
-              .join("")}</div>
-        </div>
-        `
+  (abstract?.heading || abstract?.content)
+    ? `
+    <div class="abstract">
+        <div class="abstract-heading">${abstract.heading || "ABSTRACT"}</div>
+        <div class="abstract-content">${
+          abstract?.content
+            ? applyLatexFormatting(formatCitations(abstract.content))
+                .split(/\n\s*\n/)
+                .map((p) => p.trim())
+                .filter((p) => p)
+                .map((p) => `<p>${p}</p>`)
+                .join("")
             : ""
-        }
+        }</div>
+    </div>
+    `
+    : ""
+}
+
         
         ${
-          keywords.content
+          keywords?.content
             ? `
         <div class="keywords">
-            <span class="keywords-heading">${keywords.heading}:</span>
-            <span class="keywords-content">${keywords.content}</span>
+            <span class="keywords-heading">${keywords.heading|| ""}:</span>
+            <span class="keywords-content">${keywords.content|| ""}</span>
         </div>
         `
             : ""
@@ -341,7 +349,7 @@ export const exportToHTML = async (formattedDocument) => {
 ${esc(section.heading)}
                 </div>
 <div class=\"section-content\" style=\"${(section && section.formatting && section.formatting.contentStyle) || DEFAULT_CONTENT_STYLE}\">
-${applyLatexFormatting(formatCitations(section.content))
+${applyLatexFormatting(formatCitations(section.content|| ""))
                       .split(/\n\s*\n/)
                       .map((p) => p.trim())
                       .filter((p) => p)
@@ -361,10 +369,10 @@ return isKeywordHeadingOnly(plain)
                           (subsection) => `
                         <div class="subsection">
 <div class=\"subsection-heading\" style=\"${(subsection && subsection.formatting && subsection.formatting.headingStyle) || DEFAULT_SUB_HEADING_STYLE}\">
-${esc(subsection.heading)}
+${esc(subsection?.heading|| "")}
                             </div>
 <div class=\"section-content\" style=\"${(subsection && subsection.formatting && subsection.formatting.contentStyle) || DEFAULT_CONTENT_STYLE}\">
-${applyLatexFormatting(formatCitations(subsection.content))
+${applyLatexFormatting(formatCitations(subsection?.content|| ""))
                                   .split(/\n\s*\n/)
                                   .map((p) => p.trim())
                                   .filter((p) => p)
