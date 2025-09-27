@@ -113,12 +113,12 @@ export const exportToHTML = async (formattedDocument) => {
         }
         
         .header-line {
-            margin-bottom: 5pt;
+            margin-bottom: 2pt;
         }
         
         .title {
             ${title?.style|| ""}
-            margin: 20pt 0;
+            margin: 12pt 0;
         }
         
         .authors {
@@ -214,7 +214,6 @@ export const exportToHTML = async (formattedDocument) => {
             display: grid;
             grid-template-columns: 24pt 1fr; /* number column + text */
             column-gap: 4pt;
-            margin-bottom: 4pt;
             align-items: start;
         }
         .reference-row .ref-num { text-align: left; }
@@ -287,7 +286,7 @@ export const exportToHTML = async (formattedDocument) => {
             ${affiliations
               .map(
                 (aff) => `
-                <div class=\"affiliation\">
+                <div class="affiliation" style="${aff.style || ''}">
                     <sup>${aff.number|| ""}</sup> ${aff.text|| ""}
                 </div>
             `,
@@ -299,15 +298,31 @@ export const exportToHTML = async (formattedDocument) => {
         }
         
         ${
-          publicationInfo
-            ? `
-        <div class="publication-info">
-            <strong>DOI:</strong> <a href="${publicationInfo.doi|| ""}" style="color: blue; text-decoration: underline;">${publicationInfo.doi|| ""}</a><br>
-            <strong>Received:</strong> ${publicationInfo.received|| ""}; <strong>Accepted:</strong> ${publicationInfo.accepted|| ""}; <strong>Published:</strong> ${publicationInfo.published|| ""}
-        </div>
-        `
-            : ""
-        }
+  publicationInfo
+    ? `
+<div class="publication-info">
+    ${
+      publicationInfo.doi
+        ? `<p style="margin-bottom:8pt;"><strong>DOI:</strong> 
+           <a href="${publicationInfo.doi}" style="color: blue; text-decoration: underline;">
+             ${publicationInfo.doi}
+           </a></p>`
+        : ""
+    }
+    ${
+      publicationInfo.received || publicationInfo.accepted || publicationInfo.published
+        ? `<p style="margin-top:6pt;">
+             ${publicationInfo.received ? `<strong>Received:</strong> ${publicationInfo.received}` : ""}
+             ${publicationInfo.accepted ? `; <strong>Accepted:</strong> ${publicationInfo.accepted}` : ""}
+             ${publicationInfo.published ? `; <strong>Published:</strong> ${publicationInfo.published}` : ""}
+           </p>`
+        : ""
+    }
+</div>
+`
+    : ""
+}
+
         
         ${
   (abstract?.heading || abstract?.content)
@@ -695,6 +710,13 @@ export const exportToDocx = async (formattedDocument) => {
   } = formattedDocument || {}
 
   const docChildren = [];
+  // ---------- Add spacing between header and title ----------
+docChildren.push(
+  new Paragraph({
+    text: "", // blank line
+    spacing: { after: 200 }, // ~10pt of space
+  }),
+);
 
   // ---------- Title ----------
   docChildren.push(
@@ -721,7 +743,7 @@ export const exportToDocx = async (formattedDocument) => {
         new Paragraph({
           children: [
             new TextRun({ text: String(aff.number), superScript: true, size: 18 }),
-            new TextRun({ text: " " + aff.text, size: 24 }),
+            new TextRun({ text: " " + aff.text, size: 24, bold: true }),
           ],
           alignment: AlignmentType.CENTER,
           spacing: { after: 120 },
@@ -730,6 +752,8 @@ export const exportToDocx = async (formattedDocument) => {
     });
     docChildren.push(new Paragraph({ text: "" }));
   }
+
+
 
   // ---------- Abstract ----------
   if (abstract && abstract.content) {
@@ -909,7 +933,7 @@ cleanParagraphs.forEach((p) => {
             left: convertInchesToTwip(0.25),
             hanging: convertInchesToTwip(0.25),
           },
-          spacing: { after: 120 },
+          spacing: { after:0 },
         }),
       );
     });
@@ -954,6 +978,8 @@ const docxHeader = new Header({
   ],
 });
 
+// chnages started 
+
 const docxFooter = new Footer({
   children: [
     new Paragraph({
@@ -963,15 +989,18 @@ const docxFooter = new Footer({
           style: BorderStyle.SINGLE,
           size: 6,
         },
+        spacing: { before: 0, after: 0 },
       },
     }),
     new Paragraph({
       children: [new TextRun({ text: "Page ", color: "000000" }), new TextRun({ children: [PageNumber.CURRENT], color: "000000" })],
       alignment: AlignmentType.LEFT,
+      spacing: { before: 0, after: 0 }, // 👈 removes
     }),
     new Paragraph({
       children: [new TextRun({ text: "www.rsisinternational.org", size: 20, color: "000000" })],
       alignment: AlignmentType.CENTER,
+      spacing: { before: 0, after: 0 }, 
     }),
   ],
 });
@@ -989,6 +1018,7 @@ const docxFooter = new Footer({
               right: convertInchesToTwip(0.42),
               bottom: convertInchesToTwip(0.42),
               left: convertInchesToTwip(0.42),
+              footer: convertInchesToTwip(0.2), //
             },
           },
         },

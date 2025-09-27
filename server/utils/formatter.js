@@ -82,7 +82,7 @@ export const formatToAcademicStandard = async (processedData) => {
       const affiliations = uniqueAffiliations.map((aff, index) => ({
         number: index + 1,
         text: aff,
-        style: `${FONT_SIZE_12} ${FONT_FAMILY_TIMES} ${TEXT_ALIGN_CENTER} margin-bottom: 6pt;`,
+        style: `${FONT_SIZE_12} ${FONT_WEIGHT_BOLD} ${FONT_FAMILY_TIMES} ${TEXT_ALIGN_CENTER} margin-bottom: 6pt;`,
       }))
       return { authors, affiliations }
     }
@@ -312,7 +312,7 @@ export const formatToAcademicStandard = async (processedData) => {
           affiliations.push({
             number: affiliations.length + 1,
             text: author.affiliation,
-            style: `${FONT_SIZE_12} ${FONT_FAMILY_TIMES} ${TEXT_ALIGN_CENTER} margin-bottom: 6pt;`,
+            style: `${FONT_SIZE_12} ${FONT_WEIGHT_BOLD} ${FONT_FAMILY_TIMES} ${TEXT_ALIGN_CENTER} margin-bottom: 6pt;`,
           })
         }
       })
@@ -459,4 +459,3 @@ export const formatCitations = (content) => {
     .replace(/$$([^)]+),\s*(\d{4})$$/g, "[$1, $2]") // (Author, Year) -> [Author, Year]
     .replace(/([A-Z][a-z]+\s+et\s+al\.,?\s*\d{4})/g, "[$1]") // Author et al., Year -> [Author et al., Year]
 }
-
