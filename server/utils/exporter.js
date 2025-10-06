@@ -118,7 +118,7 @@ export const exportToHTML = async (formattedDocument) => {
         
         .title {
             ${title?.style|| ""}
-            margin: 12pt 0;
+            margin: 4pt 0 12pt 0;
         }
         
         .authors {
@@ -138,7 +138,7 @@ export const exportToHTML = async (formattedDocument) => {
         }
         
         .publication-info {
-            ${publicationInfo?.style || "text-align: center; font-size: 12pt; margin: 15pt 0;"}
+            ${publicationInfo?.style || "text-align: center; font-size: 12pt; margin: 10pt 0 ; margin-top:15pt ;"}
         }
         
         .abstract {
@@ -199,12 +199,12 @@ export const exportToHTML = async (formattedDocument) => {
         }
         
         .references {
-            margin: 20pt 0;
+            margin: 12pt 0;
         }
         
         .references-heading {
             ${references?.style?.heading|| ""}
-            margin-bottom: 10pt;
+            margin-bottom: 12pt;
         }
         
         /* References aligned number + text (like screenshot) */
@@ -213,7 +213,7 @@ export const exportToHTML = async (formattedDocument) => {
         .reference-row {
             display: grid;
             grid-template-columns: 24pt 1fr; /* number column + text */
-            column-gap: 4pt;
+            column-gap: 2pt;
             align-items: start;
         }
         .reference-row .ref-num { text-align: left; }
@@ -303,7 +303,7 @@ export const exportToHTML = async (formattedDocument) => {
 <div class="publication-info">
     ${
       publicationInfo.doi
-        ? `<p style="margin-bottom:8pt;"><strong>DOI:</strong> 
+        ? `<p style="margin-bottom:14pt !important;"><strong>DOI:</strong> 
            <a href="${publicationInfo.doi}" style="color: blue; text-decoration: underline;">
              ${publicationInfo.doi}
            </a></p>`
@@ -311,7 +311,7 @@ export const exportToHTML = async (formattedDocument) => {
     }
     ${
       publicationInfo.received || publicationInfo.accepted || publicationInfo.published
-        ? `<p style="margin-top:6pt;">
+        ? `<p style="margin-top:8pt;">
              ${publicationInfo.received ? `<strong>Received:</strong> ${publicationInfo.received}` : ""}
              ${publicationInfo.accepted ? `; <strong>Accepted:</strong> ${publicationInfo.accepted}` : ""}
              ${publicationInfo.published ? `; <strong>Published:</strong> ${publicationInfo.published}` : ""}
@@ -534,7 +534,7 @@ export const exportToPDF = async (formattedDocument) => {
 
       headerTemplate: `
         <div style="font-size: 10pt; width: 100%; text-align: center; font-family: 'Times New Roman', serif; font-weight: bold; padding: 0 0.42in;">
-        <div style="border-bottom: 1px solid #000; padding-bottom: 10pt; display: flex; align-items: center; justify-content: space-between;">
+        <div style="border-bottom: 1px solid #000; padding-bottom: 6pt; margin-top: -6pt; display: flex; align-items: center; justify-content: space-between;">
           
            <!-- Logo at top-left -->
       <div style="flex: 0 0 auto; text-align: left;">
@@ -573,7 +573,7 @@ export const exportToPDF = async (formattedDocument) => {
       height: 1px;
     "></div>
     
-    <div style="padding-top:2pt; display: flex; justify-content: space-between; align-items: center;">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
        <div style="flex:1; text-align:left;">Page <span class="pageNumber"></span></div>
       <div style="flex: 1; text-align: center;">www.rsisinternational.org</div>
       <div style="flex: 1;"></div>
@@ -752,6 +752,42 @@ docChildren.push(
     });
     docChildren.push(new Paragraph({ text: "" }));
   }
+
+  // ---------- Publication Info ----------
+const pub = formattedDocument.publicationInfo;
+if (pub) {
+  const pubLines = [];
+
+  if (pub.doi) {
+    pubLines.push(
+      new Paragraph({
+        children: [
+          new TextRun({ text: "DOI: ", bold: true, size: 20 }),
+          new TextRun({ text: pub.doi, color: "0000FF", underline: {} , size: 20 }),
+        ],
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 200 },
+      })
+    );
+  }
+
+  if (pub.received || pub.accepted || pub.published) {
+    let text = "";
+    if (pub.received) text += `Received: ${pub.received}`;
+    if (pub.accepted) text += `; Accepted: ${pub.accepted}`;
+    if (pub.published) text += `; Published: ${pub.published}`;
+
+    pubLines.push(
+      new Paragraph({
+        children: [new TextRun({ text, size: 20 })],
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 120 },
+      })
+    );
+  }
+
+  docChildren.push(...pubLines);
+}
 
 
 
